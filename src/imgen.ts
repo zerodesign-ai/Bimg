@@ -35,7 +35,7 @@ const createSession = (authCookie: string) => {
   return session;
 };
 
-const getImages = async (session: AxiosInstance, prompt: string) => {
+const getImages = async (session: AxiosInstance, prompt: string, shortTimeoutMs: number, longTimeoutMs: number) => {
   console.log("Sending request...");
   const urlEncodedPrompt = querystring.escape(prompt);
 
@@ -46,7 +46,7 @@ const getImages = async (session: AxiosInstance, prompt: string) => {
     validateStatus: function (status: number) {
       return status >= 200 && status < 303;
     },
-    timeout: 200000,
+    timeout: shortTimeoutMs,
   });
 
   let redirectUrl;
@@ -72,7 +72,7 @@ const getImages = async (session: AxiosInstance, prompt: string) => {
   let imagesResponse;
 
   while (true) {
-    if (performance.now() - startWait > 300000) {
+    if (performance.now() - startWait > longTimeoutMs) {
       throw new Error("Timeout error");
     }
     console.log(".", { end: "", flush: true });
@@ -161,7 +161,7 @@ const saveImages = async (
   }
 };
 
-export const generateImagesLinks = async (prompt: string, authCookie: string) => {
+export const generateImagesLinks = async (prompt: string, authCookie: string, shortTimeoutMs: number, longTimeoutMs: number) => {
   const outputDir = `${Config.tempDir}/${prompt}`;
 
   if (!authCookie || !prompt) {
@@ -170,11 +170,11 @@ export const generateImagesLinks = async (prompt: string, authCookie: string) =>
 
   // Create image generator session
   const session = createSession(authCookie);
-  const imageLinks = await getImages(session, prompt);
+  const imageLinks = await getImages(session, prompt, shortTimeoutMs, longTimeoutMs);
   return imageLinks;
 };
 
-export const generateImageFiles = async (prompt: string, authCookie: string) => {
+export const generateImageFiles = async (prompt: string, authCookie: string, shortTimeoutMs: number, longTimeoutMs: number) => {
   const outputDir = `${Config.tempDir}/${prompt}`;
 
   if (!authCookie || !prompt) {
@@ -183,7 +183,7 @@ export const generateImageFiles = async (prompt: string, authCookie: string) => 
 
   // Create image generator session
   const session = createSession(authCookie);
-  const imageLinks = await getImages(session, prompt);
+  const imageLinks = await getImages(session, prompt, shortTimeoutMs, longTimeoutMs);
   await saveImages(session, imageLinks, outputDir);
 
   // Read saved images from the output directory
